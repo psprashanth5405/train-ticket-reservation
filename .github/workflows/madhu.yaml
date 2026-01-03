@@ -93,9 +93,9 @@ jobs:
 
       - name: Deploy to PRE-PROD Tomcat
         env:
-          URL: ${{ secrets.TOMCAT_URL_PRE-PROD }}
-          USER: ${{ secrets.TOMCAT_USER_PRE-PROD }}
-          PASS: ${{ secrets.TOMCAT_PASS_PRE-PROD }}
+          URL: ${{ secrets.TOMCAT_URL_PRE_PROD }}
+          USER: ${{ secrets.TOMCAT_USER_PRE_PROD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PRE_PROD }}
           WAR_FILE: ./war/*.war
         run: |
           echo "Checking Tomcat Manager access..."
