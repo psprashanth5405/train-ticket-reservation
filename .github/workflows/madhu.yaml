@@ -38,8 +38,11 @@ jobs:
           USER: ${{ secrets.TOMCAT_USER_DEV }}
           PASS: ${{ secrets.TOMCAT_PASS_DEV }}
         run: |
-          WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to DEV ($URL)"
+          - name: Upload WAR artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: war-file 
+            path: target/*.war
 
           echo "Checking Tomcat Manager access..."
           curl -v -u "$USER:$PASS" "$URL/list"
