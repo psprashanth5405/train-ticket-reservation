@@ -105,3 +105,28 @@ jobs:
           curl -v -u "$USER:$PASS" --fail --show-error -T $WAR_FILE \
             "$URL/deploy?path=/train-ticket-reservation&update=true" 
 
+  deploy-PROD:
+      runs-on: ubuntu-latest
+      needs: build     # <-- ensures artifact is available
+
+      steps:
+      - name: Download WAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: war-file
+          path: ./war
+
+      - name: Deploy to PRE-PROD Tomcat
+        env:
+          URL: ${{ secrets.TOMCAT_URL_PROD }}
+          USER: ${{ secrets.TOMCAT_USER_PROD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PROD }}
+          WAR_FILE: ./war/*.war
+        run: |
+          echo "Checking Tomcat Manager access..."
+          curl -v -u "$USER:$PASS" "$URL/list"
+
+          echo "Deploying WAR file..."
+          curl -v -u "$USER:$PASS" --fail --show-error -T $WAR_FILE \
+            "$URL/deploy?path=/train-ticket-reservation&update=true" 
+
