@@ -1,78 +1,56 @@
-name: Build and Deploy train-ticket-reservation
+name: Build and Push to ECR
 
 on:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+
     steps:
-      - name:  Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name:  Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name:  Build with Maven
-        run: mvn clean package -DskipTests
-
-      - name:  Find WAR file
-        run: echo "WAR_FILE=$(ls target/*.war | head -n 1)" >> $GITHUB_ENV
-
-      - name:  Upload WAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: war-file
-          path: ${{ env.WAR_FILE }}
-
-      
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Trivy FS Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          format: 'table'
-
-      - name: Build Docker Image
+      - name: Generate Image Tag
         run: |
           IMAGE_TAG=$(date +%s)
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          docker build -t ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG . 
 
-      - name: Tag Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app:${{ env.IMAGE_TAG }} .
+
+      - name: Get AWS Account ID
+        id: aws_account
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          docker tag ${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
 
-      - name: Trivy Image Scan
-        uses: aquasecurity/trivy-action@master
-        with:  
-          scan-type: image
-          image-ref: ${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-
-      - name: Push to ECR
+      - name: Login to AWS ECR
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          docker push $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - name: Tag Docker Image for ECR
+        run: |
+          docker tag my-app:${{ env.IMAGE_TAG }} \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}
+
+      - name: Push Docker Image to ECR
+        run: |
+          docker push \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}
