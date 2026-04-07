@@ -66,7 +66,7 @@ jobs:
 
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@master
-        with:
+        with:  
           scan-type: image
           image-ref: ${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           ignore-unfixed: true
@@ -76,4 +76,3 @@ jobs:
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           docker push $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-      
