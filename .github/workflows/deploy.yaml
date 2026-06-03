@@ -49,8 +49,8 @@ jobs:
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+          
           - name: Configure Maven settings.xml for Nexus
-        run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
           <settings>
