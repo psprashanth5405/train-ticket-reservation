@@ -47,8 +47,6 @@ jobs:
       # ✅ Get Account ID ONCE
       - name: Get AWS Account ID
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
           
           - name: Configure Maven settings.xml for Nexus
           mkdir -p ~/.m2
