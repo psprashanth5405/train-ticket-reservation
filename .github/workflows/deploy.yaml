@@ -12,7 +12,7 @@ jobs:
 
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}   
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
 
     steps:
       - name: Checkout code
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Build with Maven
@@ -36,7 +36,6 @@ jobs:
           name: war-file
           path: ${{ env.WAR_FILE }}
 
-      # ✅ Configure AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -44,13 +43,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ✅ Get Account ID ONCE
-      - name: Get AWS Account ID
+      - name: Configure Maven settings.xml for Nexus
         run: |
-          
-          - name: Configure Maven settings.xml for Nexus
           mkdir -p ~/.m2
-          cat <<EOF > ~/.m2/settings.xml
+          cat > ~/.m2/settings.xml <<EOF
           <settings>
             <servers>
               <server>
@@ -63,4 +59,6 @@ jobs:
           EOF
 
       - name: Upload Artifact to Nexus
-        run: mvn deploy -DaltDeploymentRepository=nexus::default::${{ secrets.NEXUS_REPO_URL }}
+        run: |
+          mvn deploy \
+          -DaltDeploymentRepository=nexus::default::${{ secrets.NEXUS_REPO_URL }}
